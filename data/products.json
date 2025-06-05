@@ -1,0 +1,113 @@
+[
+    {
+        "id": 1,
+        "name": "T-Shirt",
+        "description": "Comfortable cotton t-shirt",
+        "price": 20,
+        "variants": [
+            {
+                "size": "S",
+                "color": "Red",
+                "stock": 10,
+                "price": 20
+            },
+            {
+                "size": "M",
+                "color": "Blue",
+                "stock": 5,
+                "price": 22
+            },
+            {
+                "size": "L",
+                "color": "Green",
+                "stock": 8,
+                "price": 21
+            }
+        ],
+        "image": "/images/tshirt.jpg"
+    },
+    {
+        "id": 2,
+        "name": "Jeans",
+        "description": "Slim-fit denim jeans",
+        "price": 50,
+        "variants": [
+            {
+                "size": "30",
+                "color": "Black",
+                "stock": 7,
+                "price": 50
+            },
+            {
+                "size": "32",
+                "color": "Blue",
+                "stock": 4,
+                "price": 52
+            }
+        ],
+        "image": "/images/jeans.jpg"
+    },
+    {
+        "id": 3,
+        "name": "Sneakers",
+        "description": "Trendy running sneakers",
+        "price": 80,
+        "variants": [
+            {
+                "size": "8",
+                "color": "White",
+                "stock": 6,
+                "price": 80
+            },
+            {
+                "size": "9",
+                "color": "Black",
+                "stock": 3,
+                "price": 85
+            }
+        ],
+        "image": "/images/sneakers.jpg"
+    },
+    {
+        "id": 4,
+        "name": "Jacket",
+        "description": "Warm winter jacket",
+        "price": 120,
+        "variants": [
+            {
+                "size": "M",
+                "color": "Grey",
+                "stock": 5,
+                "price": 120
+            },
+            {
+                "size": "L",
+                "color": "Black",
+                "stock": 2,
+                "price": 125
+            }
+        ],
+        "image": "/images/jacket.jpg"
+    },
+    {
+        "id": 5,
+        "name": "Cap",
+        "description": "Stylish baseball cap",
+        "price": 15,
+        "variants": [
+            {
+                "size": "One Size",
+                "color": "Red",
+                "stock": 10,
+                "price": 15
+            },
+            {
+                "size": "One Size",
+                "color": "Blue",
+                "stock": 8,
+                "price": 15
+            }
+        ],
+        "image": "/images/cap.jpg"
+    }
+]
