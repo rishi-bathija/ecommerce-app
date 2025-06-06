@@ -1,61 +1,110 @@
 "use client"
 
-import { createContext, useContext, useReducer, useState } from 'react';
+import { createContext, useContext, useReducer, useState, useEffect } from 'react';
 import Toast from '../components/Toast';
 
 const CartContext = createContext();
 
 const cartReducer = (state, action) => {
+    let newState;
+    
     switch (action.type) {
         case 'ADD_TO_CART': {
             const existingItemIndex = state.findIndex(
-                item => item.id === action.payload.id && 
-                       item.size === action.payload.size && 
-                       item.color === action.payload.color
+                item => 
+                    item.id === action.payload.id && 
+                    item.size === action.payload.size && 
+                    item.color === action.payload.color
             );
 
             if (existingItemIndex >= 0) {
-                const newState = [...state];
-                newState[existingItemIndex].quantity = (newState[existingItemIndex].quantity || 1) + 1;
-                return newState;
+                newState = [...state];
+                newState[existingItemIndex] = {
+                    ...newState[existingItemIndex],
+                    quantity: (newState[existingItemIndex].quantity || 1) + (action.payload.quantity || 1)
+                };
+            } else {
+                newState = [...state, { ...action.payload, quantity: action.payload.quantity || 1 }];
             }
-
-            return [...state, { ...action.payload, quantity: 1 }];
+            break;
         }
+
         case 'REMOVE_FROM_CART':
-            return state.filter(item => !(
+            newState = state.filter(item => !(
                 item.id === action.payload.id && 
                 item.size === action.payload.size && 
                 item.color === action.payload.color
             ));
+            break;
+
         case 'UPDATE_QUANTITY': {
-            const { id, size, color, quantity } = action.payload;
-            return state.map(item => {
-                if (item.id === id && item.size === size && item.color === color) {
-                    return { ...item, quantity };
+            newState = state.map(item => {
+                if (
+                    item.id === action.payload.id &&
+                    item.size === action.payload.size &&
+                    item.color === action.payload.color
+                ) {
+                    return { ...item, quantity: action.payload.quantity };
                 }
                 return item;
             });
+            break;
         }
+
         case 'CLEAR_CART':
-            return [];
+            newState = [];
+            break;
+
+        case 'INIT_CART':
+            newState = action.payload;
+            break;
+
         default:
             return state;
     }
+
+    return newState;
 };
 
 export function CartProvider({ children }) {
+    const [isClient, setIsClient] = useState(false);
     const [cart, dispatch] = useReducer(cartReducer, []);
     const [notification, setNotification] = useState(null);
 
+    // Handle client-side initialization
+    useEffect(() => {
+        setIsClient(true);
+        try {
+            const savedCart = localStorage.getItem('cart');
+            if (savedCart) {
+                const parsedCart = JSON.parse(savedCart);
+                dispatch({ type: 'INIT_CART', payload: Array.isArray(parsedCart) ? parsedCart : [] });
+            }
+        } catch (error) {
+            console.error('Error reading cart from localStorage:', error);
+        }
+    }, []);
+
+    // Handle cart updates
+    useEffect(() => {
+        if (isClient && cart.length >= 0) {
+            try {
+                localStorage.setItem('cart', JSON.stringify(cart));
+            } catch (error) {
+                console.error('Error saving cart to localStorage:', error);
+            }
+        }
+    }, [cart, isClient]);
+
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
+        // Auto-hide notification after 3 seconds
+        setTimeout(() => setNotification(null), 3000);
     };
 
     const handleDispatch = (action) => {
         dispatch(action);
         
-        // Show appropriate notifications
         switch (action.type) {
             case 'ADD_TO_CART':
                 showNotification('Item added to cart!');
@@ -77,7 +126,8 @@ export function CartProvider({ children }) {
             cart, 
             dispatch: handleDispatch, 
             cartTotal, 
-            cartCount 
+            cartCount,
+            isClient 
         }}>
             {children}
             {notification && (

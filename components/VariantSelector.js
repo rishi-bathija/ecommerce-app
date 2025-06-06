@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 
 const ColorSwatch = ({ color, selected, disabled, onClick }) => {
-    // Convert color names to CSS colors
     const getColorCode = (colorName) => {
         const colorMap = {
             'Red': '#FF0000',
@@ -12,27 +11,36 @@ const ColorSwatch = ({ color, selected, disabled, onClick }) => {
             'Green': '#008000',
             'Black': '#000000',
             'White': '#FFFFFF',
-            // Add more colors as needed
+            'Grey': '#808080',
         };
         return colorMap[colorName] || colorName;
     };
 
     return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`
-                w-8 h-8 rounded-full mr-2 border-2 transition-all duration-200
-                ${selected ? 'ring-2 ring-offset-2 ring-blue-500' : 'ring-0'}
-                ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}
-            `}
-            style={{
-                backgroundColor: getColorCode(color),
-                borderColor: color.toLowerCase() === 'white' ? '#e5e5e5' : getColorCode(color)
-            }}
-            aria-label={color}
-            title={disabled ? 'Not available with selected size' : color}
-        />
+        <div className="relative">
+            <button
+                onClick={onClick}
+                disabled={disabled}
+                className={`
+                    w-10 h-10 rounded-full transition-all duration-300
+                    ${selected ? 'ring-2 ring-offset-2 ring-blue-500 scale-110' : 'ring-1 ring-gray-300'}
+                    ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 cursor-pointer'}
+                    ${color.toLowerCase() === 'white' ? 'bg-white' : ''}
+                `}
+                style={{
+                    backgroundColor: getColorCode(color),
+                }}
+                aria-label={color}
+                title={disabled ? 'Not available with selected size' : color}
+            />
+            {selected && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 rounded-full w-4 h-4 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                    </svg>
+                </span>
+            )}
+        </div>
     );
 };
 
@@ -41,15 +49,16 @@ const SizeButton = ({ size, selected, disabled, onClick }) => (
         onClick={onClick}
         disabled={disabled}
         className={`
-            px-4 py-2 mr-2 mb-2 rounded-md font-medium transition-all duration-200
+            min-w-[3rem] px-4 py-2.5 rounded-lg font-medium transition-all duration-300
             ${selected 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-2' 
+                : 'bg-white text-gray-800 border border-gray-300 hover:border-blue-600'
             }
             ${disabled 
                 ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:scale-105'
+                : 'hover:shadow-md transform hover:-translate-y-0.5'
             }
+            mr-3 mb-3
         `}
     >
         {size}
@@ -66,29 +75,39 @@ const VariantSelector = ({ product }) => {
     const allSizes = [...new Set(product.variants.map(v => v.size))];
     const allColors = [...new Set(product.variants.map(v => v.color))];
 
-    // Get available colors for the selected size
-    const availableColors = product.variants
-        .filter(v => v.size === selectedSize)
-        .map(v => v.color);
+    // Get available combinations
+    const getAvailableColors = (size) => {
+        return product.variants
+            .filter(v => v.size === size && v.stock > 0)
+            .map(v => v.color);
+    };
 
-    // Get available sizes for the selected color
-    const availableSizes = product.variants
-        .filter(v => v.color === selectedColor)
-        .map(v => v.size);
+    const getAvailableSizes = (color) => {
+        return product.variants
+            .filter(v => v.color === color && v.stock > 0)
+            .map(v => v.size);
+    };
 
     // Find the selected variant
     const selectedVariant = product.variants.find(
-        (v) => v.size === selectedSize && v.color === selectedColor
+        v => v.size === selectedSize && v.color === selectedColor
     );
 
-    // If current combination becomes invalid, find the first valid combination
-    useEffect(() => {
-        if (!selectedVariant) {
-            const firstValidVariant = product.variants[0];
-            setSelectedSize(firstValidVariant.size);
-            setSelectedColor(firstValidVariant.color);
+    const handleSizeChange = (newSize) => {
+        setSelectedSize(newSize);
+        const availableColorsForSize = getAvailableColors(newSize);
+        if (!availableColorsForSize.includes(selectedColor)) {
+            setSelectedColor(availableColorsForSize[0]);
         }
-    }, [selectedSize, selectedColor, product.variants, selectedVariant]);
+    };
+
+    const handleColorChange = (newColor) => {
+        setSelectedColor(newColor);
+        const availableSizesForColor = getAvailableSizes(newColor);
+        if (!availableSizesForColor.includes(selectedSize)) {
+            setSelectedSize(availableSizesForColor[0]);
+        }
+    };
 
     const handleAddToCart = () => {
         if (selectedVariant && selectedVariant.stock > 0) {
@@ -101,22 +120,19 @@ const VariantSelector = ({ product }) => {
                     color: selectedColor,
                     price: selectedVariant.price,
                     image: product.image,
+                    quantity: 1  // Explicitly set quantity to 1
                 },
             });
-            
-            // Show success animation
             setAddedToCart(true);
             setTimeout(() => setAddedToCart(false), 2000);
-        } else {
-            alert('Out of stock!');
         }
     };
 
     return (
-        <div className="mt-4">
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Size
+        <div>
+            <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Select Size
                 </label>
                 <div className="flex flex-wrap">
                     {allSizes.map((size) => (
@@ -124,43 +140,46 @@ const VariantSelector = ({ product }) => {
                             key={size}
                             size={size}
                             selected={size === selectedSize}
-                            disabled={!availableSizes.includes(size)}
-                            onClick={() => setSelectedSize(size)}
+                            disabled={!product.variants.some(v => v.size === size && v.stock > 0)}
+                            onClick={() => handleSizeChange(size)}
                         />
                     ))}
                 </div>
             </div>
 
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Color
+            <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Select Color
                 </label>
-                <div className="flex items-center">
+                <div className="flex items-center space-x-4">
                     {allColors.map((color) => (
                         <ColorSwatch
                             key={color}
                             color={color}
                             selected={color === selectedColor}
-                            disabled={!availableColors.includes(color)}
-                            onClick={() => setSelectedColor(color)}
+                            disabled={!product.variants.some(v => v.color === color && v.stock > 0)}
+                            onClick={() => handleColorChange(color)}
                         />
                     ))}
                 </div>
             </div>
 
             {selectedVariant && (
-                <div className="mt-6">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="mt-8">
+                    <div className="flex items-center justify-between mb-6">
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-3xl font-bold text-gray-900">
                                 ${selectedVariant.price}
                             </p>
-                            <p className={`text-sm ${selectedVariant.stock < 5 ? 'text-red-500' : 'text-gray-500'}`}>
+                            <p className={`
+                                mt-1 text-sm
+                                ${selectedVariant.stock < 5 ? 'text-red-500' : 'text-gray-500'}
+                            `}>
                                 {selectedVariant.stock === 0 
                                     ? 'Out of stock' 
                                     : selectedVariant.stock < 5 
-                                        ? `Only ${selectedVariant.stock} left!` 
-                                        : `${selectedVariant.stock} in stock`}
+                                        ? `Only ${selectedVariant.stock} left in stock!` 
+                                        : `${selectedVariant.stock} available`}
                             </p>
                         </div>
                     </div>
@@ -168,13 +187,13 @@ const VariantSelector = ({ product }) => {
                         onClick={handleAddToCart}
                         disabled={!selectedVariant || selectedVariant.stock === 0 || addedToCart}
                         className={`
-                            w-full py-3 px-8 rounded-lg font-medium text-white
+                            w-full py-4 rounded-lg font-medium text-white text-lg
                             transition-all duration-300 transform
                             ${addedToCart 
                                 ? 'bg-green-500' 
                                 : selectedVariant.stock === 0 
                                     ? 'bg-gray-400 cursor-not-allowed' 
-                                    : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'
+                                    : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5'
                             }
                         `}
                     >
